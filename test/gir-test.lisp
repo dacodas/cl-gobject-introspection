@@ -2,6 +2,7 @@
 
 (defvar *glib*)
 (defvar *gio*)
+(defvar *gobj*)
 (defvar *gtk*)
 
 (def-suite gir :description "The GIR testing suite")
@@ -16,6 +17,9 @@
       (is (eql 'gir::namespace
 	       (progn (setf *gio* (require-namespace "Gio"))
 		      (type-of *gio*))))
+      (is (eql 'gir::namespace
+	       (progn (setf *gobj* (require-namespace "GObject"))
+		      (type-of *gobj*))))
       (is (eql 'gir::namespace
 	       (progn (setf *gtk* (require-namespace "Gtk" "3.0"))
 		      (type-of *gtk*)))))
@@ -180,6 +184,26 @@
 			 (declare (ignore ret))
 			 time-val))
 		      'gir::struct-instance)))
+
+(def-suite cross-platform-gtype :description "Test GType" :in gir)
+
+(in-suite cross-platform-gtype)
+
+(test (gi-function-with-gtype :depends-on namespace)
+  "Call Gio.ListStore.New with Gio.Cancellable as the type repeatedly"
+  (is (not (null
+            (let* ((cancellable
+                     (gir:invoke
+                      (*gio* "Cancellable" 'new)))
+                   (cancellable-type
+                     (gir:invoke
+                      (*gobj* "type_from_name")
+                      "GCancellable")))
+              (format t "Creating GCancellables (GType: ~A)~%" cancellable-type)
+              (loop for count below 10
+                    collect (gir:invoke
+                             (*gio* "ListStore" 'new)
+                             cancellable-type)))))))
 
 (in-suite gir)
 
